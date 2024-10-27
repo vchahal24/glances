@@ -9,6 +9,7 @@
 import os
 
 import psutil
+import json
 
 from glances.filter import GlancesFilter, GlancesFilterList
 from glances.globals import BSD, LINUX, MACOS, WINDOWS, iterkeys, list_of_namedtuple_to_list_of_dict, namedtuple_to_dict
@@ -114,6 +115,20 @@ class GlancesProcesses:
         # { 'cpu_percent': 0.0, 'memory_percent': 0.0 }
         self._max_values = {}
         self.reset_max_values()
+
+
+    def filter_processes_by_user(self, filter_users=None, hide_users=None):
+        filtered_processes = []
+        for proc in self.processes:
+            try:
+                user = proc.info['username']
+                if (filter_users and user not in filter_users) or (hide_users and user in hide_users):
+                    continue
+                filtered_processes.append(proc)
+            except KeyError:
+                continue
+        return filtered_processes
+
 
     def set_args(self, args):
         """Set args."""
@@ -548,6 +563,11 @@ class GlancesProcesses:
             if values_list:
                 self.set_max_values(k, max(values_list))
 
+        filter_users = self.get_filter_users()
+        hide_users = self.get_hide_users()
+
+        self.processes = self.filter_processes_by_user(filter_users, hide_users)
+
         # Update the stats
         self.processlist = processlist
 
@@ -698,5 +718,12 @@ def sort_stats(stats, sorted_by='cpu_percent', sorted_by_secondary='memory_perce
 
     return stats
 
+def get_filter_users(self):
+    users = input("Please enter users to filter: ")
+    return [user.strip() for user in users.split(",") if user.strip()]
+
+def get_hide_users(self):
+    users = input("Please enter users to hide: ")
+    return [user.strip() for user in users.split(",") if user.strip()]
 
 glances_processes = GlancesProcesses()
