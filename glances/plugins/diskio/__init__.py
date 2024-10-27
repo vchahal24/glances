@@ -73,8 +73,10 @@ class PluginModel(GlancesPluginModel):
         # Hide stats if it has never been != 0
         if config is not None:
             self.hide_zero = config.get_bool_value(self.plugin_name, 'hide_zero', default=False)
+            self.hide_threshold_bytes = config.get_int_value(self.plugin_name, 'hide_threshold_bytes', default=0)
         else:
             self.hide_zero = False
+            self.hide_threshold_bytes = 0
         self.hide_zero_fields = ['read_bytes_rate_per_sec', 'write_bytes_rate_per_sec']
 
         # Force a first update because we need two updates to have the first stat
@@ -144,6 +146,10 @@ class PluginModel(GlancesPluginModel):
         # Add specifics information
         # Alert
         for i in self.get_raw():
+            # Skip alert if no timespan to measure
+            if 'read_bytes_rate_per_sec' not in i or 'write_bytes_rate_per_sec' not in i:
+                continue
+
             disk_real_name = i['disk_name']
             self.views[i[self.get_key()]]['read_bytes']['decoration'] = self.get_alert(
                 i['read_bytes'], header=disk_real_name + '_rx'
